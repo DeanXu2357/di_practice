@@ -16,12 +16,14 @@ func New() Authentication {
 	op := NewOtpProxy()
 	f := NewFailedCounter()
 	h := NewSha256Hash()
+	n := NewSlackNotification()
 
 	return &authentication{
 		accountRepo:   ar,
 		otpProxy:      op,
 		failedCounter: f,
 		hash:          h,
+		notification:  n,
 	}
 }
 
@@ -30,6 +32,7 @@ type authentication struct {
 	otpProxy      OtpProxy
 	failedCounter FailedCounter
 	hash          HashPassword
+	notification  Notification
 }
 
 func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
@@ -74,9 +77,9 @@ func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 			return false, err
 		}
 
-		// notify slack
-		if err := a.notify(); err != nil {
-			return false, fmt.Errorf("notify fail %w", err)
+		// Notify -- slack
+		if err := a.notification.Notify(); err != nil {
+			return false, fmt.Errorf("Notify fail %w", err)
 		}
 
 		return false, nil
@@ -92,10 +95,5 @@ func (a *authentication) logFailedCount(accountID string) error {
 	// log failed count
 	logger := log.New(os.Stderr, "[Debug] ", 0)
 	logger.Printf("failed times: %s", failedCounts)
-	return nil
-}
-
-func (a *authentication) notify() error {
-	fmt.Println("this is slack api post")
 	return nil
 }
