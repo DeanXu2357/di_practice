@@ -52,7 +52,7 @@ func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 	}
 
 	// sha256 pwd
-	hashedPwd := a.hash.hashPassword(pwd)
+	hashedPwd := a.hash.HashPassword(pwd)
 
 	// get opt by http request
 	currentOtp, err := a.otpProxy.GetOtp(accountID)
