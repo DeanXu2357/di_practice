@@ -1,8 +1,6 @@
 package authentication
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -17,11 +15,13 @@ func New() Authentication {
 	ar := NewAccountRepo()
 	op := NewOtpProxy()
 	f := NewFailedCounter()
+	h := NewSha256Hash()
 
 	return &authentication{
 		accountRepo:   ar,
 		otpProxy:      op,
 		failedCounter: f,
+		hash:          h,
 	}
 }
 
@@ -29,6 +29,7 @@ type authentication struct {
 	accountRepo   AccountRepo
 	otpProxy      OtpProxy
 	failedCounter FailedCounter
+	hash          HashPassword
 }
 
 func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
@@ -48,7 +49,7 @@ func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 	}
 
 	// sha256 pwd
-	hashedPwd := a.hashPassword(pwd)
+	hashedPwd := a.hash.hashPassword(pwd)
 
 	// get opt by http request
 	currentOtp, err := a.otpProxy.GetOtp(accountID)
@@ -97,10 +98,4 @@ func (a *authentication) logFailedCount(accountID string) error {
 func (a *authentication) notify() error {
 	fmt.Println("this is slack api post")
 	return nil
-}
-
-func (a *authentication) hashPassword(pwd string) string {
-	hash := sha256.Sum256([]byte(pwd))
-	hashedPwd := hex.EncodeToString(hash[:])
-	return hashedPwd
 }
