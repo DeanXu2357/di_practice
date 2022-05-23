@@ -3,8 +3,6 @@ package authentication
 import (
 	"errors"
 	"fmt"
-	"log"
-	"os"
 )
 
 type Authentication interface {
@@ -17,22 +15,25 @@ func New() Authentication {
 	f := NewFailedCounter()
 	h := NewSha256Hash()
 	n := NewSlackNotification()
+	l := NewLogFailedCount(f)
 
 	return &authentication{
-		accountRepo:   ar,
-		otpProxy:      op,
-		failedCounter: f,
-		hash:          h,
-		notification:  n,
+		accountRepo:    ar,
+		otpProxy:       op,
+		failedCounter:  f,
+		hash:           h,
+		notification:   n,
+		logFailedCount: l,
 	}
 }
 
 type authentication struct {
-	accountRepo   AccountRepo
-	otpProxy      OtpProxy
-	failedCounter FailedCounter
-	hash          HashPassword
-	notification  Notification
+	accountRepo    AccountRepo
+	otpProxy       OtpProxy
+	failedCounter  FailedCounter
+	hash           HashPassword
+	notification   Notification
+	logFailedCount LogFailedCount
 }
 
 func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
@@ -73,7 +74,7 @@ func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 		}
 
 		// get failed count & log failed count
-		if err := a.logFailedCount(accountID); err != nil {
+		if err := a.logFailedCount.LogFailedCount(accountID); err != nil {
 			return false, err
 		}
 
@@ -84,16 +85,4 @@ func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 
 		return false, nil
 	}
-}
-
-func (a *authentication) logFailedCount(accountID string) error {
-	failedCounts, err := a.failedCounter.Get(accountID)
-	if err != nil {
-		return fmt.Errorf("get failed count fail %w", err)
-	}
-
-	// log failed count
-	logger := log.New(os.Stderr, "[Debug] ", 0)
-	logger.Printf("failed times: %s", failedCounts)
-	return nil
 }
