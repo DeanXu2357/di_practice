@@ -1,8 +1,9 @@
 package main
 
 import (
-	"di_practice/service/authentication"
 	"fmt"
+
+	"di_practice/service/authentication"
 )
 
 func main() {
@@ -11,5 +12,5 @@ func main() {
 		fmt.Println(err.Error())
 	}
 
-	fmt.Printf("Verify: %t", result)
+	fmt.Printf("Verify: %t\n", result)
 }
