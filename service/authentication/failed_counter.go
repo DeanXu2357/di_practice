@@ -7,20 +7,20 @@ import (
 )
 
 type FailedCounter interface {
-	addFailedCount(accountID string) error
-	getFailedCount(accountID string) (string, error)
-	resetFailedCount(accountID string) error
-	isAccountLocked(accountID string) (string, error)
+	Add(accountID string) error
+	Get(accountID string) (string, error)
+	Reset(accountID string) error
+	IsAccountLocked(accountID string) (string, error)
 }
 
 func NewFailedCounter() FailedCounter {
-
+	return &failedCounter{}
 }
 
 type failedCounter struct {
 }
 
-func (a *authentication) addFailedCount(accountID string) error {
+func (f *failedCounter) Add(accountID string) error {
 	res, err := http.Get(fmt.Sprintf("https://failed_count/%s/add", accountID))
 	if err != nil {
 		return fmt.Errorf("http error: %w", err)
@@ -36,7 +36,7 @@ func (a *authentication) addFailedCount(accountID string) error {
 	return nil
 }
 
-func (a *authentication) getFailedCount(accountID string) (string, error) {
+func (f *failedCounter) Get(accountID string) (string, error) {
 	res, err := http.Get(fmt.Sprintf("https://failed_count/%s", accountID))
 	if err != nil {
 		return "", fmt.Errorf("http error: %w", err)
@@ -53,7 +53,7 @@ func (a *authentication) getFailedCount(accountID string) (string, error) {
 	return string(rtnBytes), nil
 }
 
-func (a *authentication) resetFailedCount(accountID string) error {
+func (f *failedCounter) Reset(accountID string) error {
 	res, err := http.Get(fmt.Sprintf("https://failed_count/%s/reset", accountID))
 	if err != nil {
 		return fmt.Errorf("http error: %w", err)
@@ -69,7 +69,7 @@ func (a *authentication) resetFailedCount(accountID string) error {
 	return nil
 }
 
-func (a *authentication) isAccountLocked(accountID string) (string, error) {
+func (f *failedCounter) IsAccountLocked(accountID string) (string, error) {
 	res, err := http.Get(fmt.Sprintf("https://is_locked/%s", accountID))
 	if err != nil {
 		return "", fmt.Errorf("http error: %w", err)

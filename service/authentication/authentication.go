@@ -16,23 +16,26 @@ type Authentication interface {
 func New() Authentication {
 	ar := NewAccountRepo()
 	op := NewOtpProxy()
+	f := NewFailedCounter()
 
 	return &authentication{
-		accountRepo: ar,
-		otpProxy:    op,
+		accountRepo:   ar,
+		otpProxy:      op,
+		failedCounter: f,
 	}
 }
 
 type authentication struct {
-	accountRepo AccountRepo
-	otpProxy    OtpProxy
+	accountRepo   AccountRepo
+	otpProxy      OtpProxy
+	failedCounter FailedCounter
 }
 
 func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 	// check if locked
-	isLocked, err := a.isAccountLocked(accountID)
+	isLocked, err := a.failedCounter.IsAccountLocked(accountID)
 	if err != nil {
-		return false, fmt.Errorf("isAccountLocked failed %w", err)
+		return false, fmt.Errorf("IsAccountLocked failed %w", err)
 	}
 	if isLocked == "true" {
 		return false, errors.New("account locked")
@@ -54,14 +57,14 @@ func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 	}
 
 	if otp == currentOtp && hashedPwd == pwdFromDB {
-		if err := a.resetFailedCount(accountID); err != nil {
+		if err := a.failedCounter.Reset(accountID); err != nil {
 			return false, fmt.Errorf("reset failed count fail %w", err)
 		}
 
 		return true, nil
 	} else {
 		// add failed count
-		if err := a.addFailedCount(accountID); err != nil {
+		if err := a.failedCounter.Add(accountID); err != nil {
 			return false, fmt.Errorf("add failed count fail %w", err)
 		}
 
@@ -80,7 +83,7 @@ func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 }
 
 func (a *authentication) logFailedCount(accountID string) error {
-	failedCounts, err := a.getFailedCount(accountID)
+	failedCounts, err := a.failedCounter.Get(accountID)
 	if err != nil {
 		return fmt.Errorf("get failed count fail %w", err)
 	}
