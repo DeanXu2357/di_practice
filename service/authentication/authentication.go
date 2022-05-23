@@ -9,9 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 type Authentication interface {
@@ -19,28 +16,32 @@ type Authentication interface {
 }
 
 func New() Authentication {
-	return &authentication{}
+	ar := NewAccountRepo()
+	op := NewOtpProxy()
+
+	return &authentication{
+		accountRepo: ar,
+		otpProxy:    op,
+	}
 }
 
-type AccountModel struct {
-	gorm.Model
-	Password string
+type authentication struct {
+	accountRepo AccountRepo
+	otpProxy    OtpProxy
 }
-
-type authentication struct{}
 
 func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 	// check if locked
-	isLocked, err := a.checkLocked(accountID)
+	isLocked, err := a.isAccountLocked(accountID)
 	if err != nil {
-		return false, fmt.Errorf("checkLocked failed %w", err)
+		return false, fmt.Errorf("isAccountLocked failed %w", err)
 	}
 	if isLocked == "true" {
 		return false, errors.New("account locked")
 	}
 
 	// get pwd from db
-	pwdFromDB, err := a.getPwdFromDB(accountID)
+	pwdFromDB, err := a.accountRepo.GetPwdFromDB(accountID)
 	if err != nil {
 		return false, fmt.Errorf("get Pwd from db failed %w", err)
 	}
@@ -49,7 +50,7 @@ func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 	hashedPwd := a.hashPassword(pwd)
 
 	// get opt by http request
-	currentOtp, err := a.getOtp(accountID)
+	currentOtp, err := a.otpProxy.GetOtp(accountID)
 	if err != nil {
 		return false, fmt.Errorf("get opt failed %w", err)
 	}
@@ -61,6 +62,11 @@ func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 
 		return true, nil
 	} else {
+		// add failed count
+		if err := a.addFailedCount(accountID); err != nil {
+			return false, fmt.Errorf("add failed count fail %w", err)
+		}
+
 		// get failed count & log failed count
 		if err := a.logFailedCount(accountID); err != nil {
 			return false, err
@@ -69,11 +75,6 @@ func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 		// notify slack
 		if err := a.notify(); err != nil {
 			return false, fmt.Errorf("notify fail %w", err)
-		}
-
-		// add failed count
-		if err := a.addFailedCount(accountID); err != nil {
-			return false, fmt.Errorf("add failed count fail %w", err)
 		}
 
 		return false, nil
@@ -146,43 +147,13 @@ func (a *authentication) resetFailedCount(accountID string) error {
 	return nil
 }
 
-func (a *authentication) getOtp(accountID string) (string, error) {
-	res, err := http.Get(fmt.Sprintf("https://opt_service/%s", accountID))
-	if err != nil {
-		return "", fmt.Errorf("http error: %w", err)
-	}
-	rtnBytes, err := ioutil.ReadAll(res.Body)
-	defer res.Body.Close()
-	if err != nil {
-		return "", fmt.Errorf("parse response error: %w", err)
-	}
-	if res.StatusCode != 200 {
-		return "", fmt.Errorf("unexpected response status code: %d, body %s", res.StatusCode, rtnBytes)
-	}
-
-	return string(rtnBytes), nil
-}
-
-func (a *authentication) getPwdFromDB(accountID string) (string, error) {
-	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
-	if err != nil {
-		return "", fmt.Errorf("db error: %w", err)
-	}
-
-	var ac AccountModel
-	db.First(&ac, accountID)
-
-	pwdFromDB := ac.Password
-	return pwdFromDB, nil
-}
-
 func (a *authentication) hashPassword(pwd string) string {
 	hash := sha256.Sum256([]byte(pwd))
 	hashedPwd := hex.EncodeToString(hash[:])
 	return hashedPwd
 }
 
-func (a *authentication) checkLocked(accountID string) (string, error) {
+func (a *authentication) isAccountLocked(accountID string) (string, error) {
 	res, err := http.Get(fmt.Sprintf("https://is_locked/%s", accountID))
 	if err != nil {
 		return "", fmt.Errorf("http error: %w", err)
