@@ -3,7 +3,6 @@ package authentication
 import (
 	"fmt"
 	"log"
-	"os"
 )
 
 type LogFailedCount interface {
@@ -12,10 +11,11 @@ type LogFailedCount interface {
 
 type logFailedCount struct {
 	failedCounter FailedCounter
+	logger        *log.Logger
 }
 
-func NewLogFailedCount(f FailedCounter) LogFailedCount {
-	return &logFailedCount{failedCounter: f}
+func NewLogFailedCount(f FailedCounter, l *log.Logger) LogFailedCount {
+	return &logFailedCount{failedCounter: f, logger: l}
 }
 
 func (a *logFailedCount) LogFailedCount(accountID string) error {
@@ -25,7 +25,6 @@ func (a *logFailedCount) LogFailedCount(accountID string) error {
 	}
 
 	// log failed count
-	logger := log.New(os.Stderr, "[Debug] ", 0)
-	logger.Printf("failed times: %s", failedCounts)
+	a.logger.Printf("failed times: %s", failedCounts)
 	return nil
 }

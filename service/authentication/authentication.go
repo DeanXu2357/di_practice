@@ -3,6 +3,8 @@ package authentication
 import (
 	"errors"
 	"fmt"
+	"log"
+	"os"
 )
 
 type Authentication interface {
@@ -15,7 +17,8 @@ func New() Authentication {
 	f := NewFailedCounter()
 	h := NewSha256Hash()
 	n := NewSlackNotification()
-	l := NewLogFailedCount(f)
+	logger := log.New(os.Stderr, "[Debug] ", 0)
+	l := NewLogFailedCount(f, logger)
 
 	return &authentication{
 		accountRepo:    ar,
