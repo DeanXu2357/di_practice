@@ -1,5 +1,7 @@
 package authentication
 
+//go:generate mockgen -destination ../../mocks/otp_proxy/mocks.go -source=./otp_proxy.go -package=mockOtpProxy
+
 import (
 	"fmt"
 	"io/ioutil"

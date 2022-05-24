@@ -35,7 +35,7 @@ func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("IsAccountLocked failed %w", err)
 	}
-	if isLocked == "true" {
+	if isLocked {
 		return false, errors.New("account locked")
 	}
 

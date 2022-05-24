@@ -1,5 +1,7 @@
 package authentication
 
+//go:generate mockgen -destination ../../mocks/failed_counter/mocks.go -source=./failed_counter.go -package=mockFailedCounter
+
 import (
 	"fmt"
 	"io/ioutil"
@@ -10,7 +12,7 @@ type FailedCounter interface {
 	Add(accountID string) error
 	Get(accountID string) (string, error)
 	Reset(accountID string) error
-	IsAccountLocked(accountID string) (string, error)
+	IsAccountLocked(accountID string) (bool, error)
 }
 
 func NewFailedCounter() FailedCounter {
@@ -69,14 +71,19 @@ func (f *failedCounter) Reset(accountID string) error {
 	return nil
 }
 
-func (f *failedCounter) IsAccountLocked(accountID string) (string, error) {
+func (f *failedCounter) IsAccountLocked(accountID string) (bool, error) {
 	res, err := http.Get(fmt.Sprintf("https://is_locked/%s", accountID))
 	if err != nil {
-		return "", fmt.Errorf("http error: %w", err)
+		return false, fmt.Errorf("http error: %w", err)
 	}
 	rtnBytes, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "", fmt.Errorf("parse response error: %w", err)
+		return false, fmt.Errorf("parse response error: %w", err)
 	}
-	return string(rtnBytes), nil
+
+	if string(rtnBytes) == "true" {
+		return true, nil
+	}
+
+	return false, nil
 }

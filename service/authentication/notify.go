@@ -1,5 +1,7 @@
 package authentication
 
+//go:generate mockgen -destination ../../mocks/notification/mocks.go -source=./notify.go -package=mockNotification
+
 import "fmt"
 
 type Notification interface {

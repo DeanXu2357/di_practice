@@ -1,5 +1,7 @@
 package authentication
 
+//go:generate mockgen -destination ../../mocks/log_failed_count/mocks.go -source=./log_failed_count.go -package=mockLogFailedCount
+
 import (
 	"fmt"
 	"log"

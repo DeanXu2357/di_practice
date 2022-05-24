@@ -1,5 +1,7 @@
 package authentication
 
+//go:generate mockgen -destination ../../mocks/account_repo/mocks.go -source=./account_repo.go -package=mockAccountRepo
+
 import (
 	"fmt"
 

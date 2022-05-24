@@ -1,5 +1,7 @@
 package authentication
 
+//go:generate mockgen -destination ../../mocks/hash_password/mocks.go -source=./hash_password.go -package=mockHashPassword
+
 import (
 	"crypto/sha256"
 	"encoding/hex"
