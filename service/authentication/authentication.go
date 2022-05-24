@@ -3,23 +3,13 @@ package authentication
 import (
 	"errors"
 	"fmt"
-	"log"
-	"os"
 )
 
 type Authentication interface {
 	Verify(accountID, pwd, otp string) (bool, error)
 }
 
-func New() Authentication {
-	ar := NewAccountRepo()
-	op := NewOtpProxy()
-	f := NewFailedCounter()
-	h := NewSha256Hash()
-	n := NewSlackNotification()
-	logger := log.New(os.Stderr, "[Debug] ", 0)
-	l := NewLogFailedCount(f, logger)
-
+func New(ar AccountRepo, h HashPassword, op OtpProxy, f FailedCounter, n Notification, l LogFailedCount) Authentication {
 	return &authentication{
 		accountRepo:    ar,
 		otpProxy:       op,
