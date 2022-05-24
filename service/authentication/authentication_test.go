@@ -33,6 +33,46 @@ func Test_authentication_Verify_is_valid(t *testing.T) {
 	shouldBeValid(t, "poyu", "pa55w0rd", "abc")
 }
 
+func Test_authentication_Verify_is_locked(t *testing.T) {
+	createMocks(t)
+
+	givenIsAccountLocked("poyu", true)
+
+	shouldBeInvalidAndError(t, "poyu", "pa55w0rd", "abc")
+}
+
+func Test_authentication_Verify_otp_invalid(t *testing.T) {
+	createMocks(t)
+
+	whenInvalid()
+
+	shouldAddFailedCounter("poyu")
+	shouldLog("poyu")
+	shouldNotify()
+	shouldBeInvalid(t, "poyu", "pa55w0rd", "abc")
+}
+
+func whenInvalid() {
+	givenIsAccountLocked("poyu", false)
+	givenPwdFromDB("poyu", "hashed_password")
+	givenHashedPwd("pa55w0rd", "hashed_password")
+	givenCurrentOtp("poyu", "wrong otp")
+}
+
+func shouldAddFailedCounter(id string) *gomock.Call {
+	return fc.EXPECT().
+		Add(id).
+		Return(nil)
+}
+
+func shouldLog(id string) *gomock.Call {
+	return l.EXPECT().LogFailedCount(id).Return(nil)
+}
+
+func shouldNotify() *gomock.Call {
+	return n.EXPECT().Notify().Return(nil)
+}
+
 func resetFailedCountSuccess(x string) *gomock.Call {
 	return fc.EXPECT().
 		Reset(gomock.Eq(x)).
@@ -69,6 +109,22 @@ func shouldBeValid(t *testing.T, id string, pwd string, o string) {
 
 	assert.NoError(t, err)
 	assert.True(t, actual)
+}
+
+func shouldBeInvalid(t *testing.T, id string, pwd string, o string) {
+	svc := New(repo, hash, otp, fc, n, l)
+	actual, err := svc.Verify(id, pwd, o)
+
+	assert.NoError(t, err)
+	assert.False(t, actual)
+}
+
+func shouldBeInvalidAndError(t *testing.T, id string, pwd string, o string) {
+	svc := New(repo, hash, otp, fc, n, l)
+	actual, err := svc.Verify(id, pwd, o)
+
+	assert.Error(t, err)
+	assert.False(t, actual)
 }
 
 // golang 中測試沒有 setUp 方法, 所以寫這個
