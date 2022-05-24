@@ -104,7 +104,7 @@ func givenCurrentOtp(x string, rets string) *gomock.Call {
 }
 
 func shouldBeValid(t *testing.T, id string, pwd string, o string) {
-	svc := New(repo, hash, otp, fc, n, l)
+	svc := createService()
 	actual, err := svc.Verify(id, pwd, o)
 
 	assert.NoError(t, err)
@@ -112,7 +112,7 @@ func shouldBeValid(t *testing.T, id string, pwd string, o string) {
 }
 
 func shouldBeInvalid(t *testing.T, id string, pwd string, o string) {
-	svc := New(repo, hash, otp, fc, n, l)
+	svc := createService()
 	actual, err := svc.Verify(id, pwd, o)
 
 	assert.NoError(t, err)
@@ -120,11 +120,16 @@ func shouldBeInvalid(t *testing.T, id string, pwd string, o string) {
 }
 
 func shouldBeInvalidAndError(t *testing.T, id string, pwd string, o string) {
-	svc := New(repo, hash, otp, fc, n, l)
+	svc := createService()
 	actual, err := svc.Verify(id, pwd, o)
 
 	assert.Error(t, err)
 	assert.False(t, actual)
+}
+
+func createService() Authentication {
+	svc := New(repo, hash, otp, n, l)
+	return NewFailedCounterDecorator(svc, fc)
 }
 
 // golang 中測試沒有 setUp 方法, 所以寫這個

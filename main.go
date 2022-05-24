@@ -17,7 +17,9 @@ func main() {
 	logger := log.New(os.Stderr, "[Debug] ", 0)
 	l := authentication.NewLogFailedCount(f, logger)
 
-	result, err := authentication.New(ar, h, op, f, n, l).Verify("poyu", "pa55w0rd", "123")
+	svc := authentication.New(ar, h, op, n, l)
+	svc = authentication.NewFailedCounterDecorator(svc, f)
+	result, err := svc.Verify("poyu", "pa55w0rd", "123")
 	if err != nil {
 		fmt.Println(err.Error())
 	}
