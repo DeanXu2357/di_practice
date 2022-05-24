@@ -72,7 +72,7 @@ func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 		}
 
 		// Notify -- slack
-		if err := a.notification.Notify(); err != nil {
+		if err := a.notification.Notify(accountID); err != nil {
 			return false, fmt.Errorf("Notify fail %w", err)
 		}
 

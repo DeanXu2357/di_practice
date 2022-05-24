@@ -48,7 +48,7 @@ func Test_authentication_Verify_otp_invalid(t *testing.T) {
 
 	shouldAddFailedCounter("poyu")
 	shouldLog("poyu")
-	shouldNotify()
+	shouldNotify("poyu")
 	shouldBeInvalid(t, "poyu", "pa55w0rd", "abc")
 }
 
@@ -69,8 +69,8 @@ func shouldLog(id string) *gomock.Call {
 	return l.EXPECT().LogFailedCount(id).Return(nil)
 }
 
-func shouldNotify() *gomock.Call {
-	return n.EXPECT().Notify().Return(nil)
+func shouldNotify(accountID string) *gomock.Call {
+	return n.EXPECT().Notify(gomock.Eq(accountID)).Return(nil)
 }
 
 func resetFailedCountSuccess(x string) *gomock.Call {
