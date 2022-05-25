@@ -128,9 +128,10 @@ func shouldBeInvalidAndError(t *testing.T, id string, pwd string, o string) {
 }
 
 func createService() Authentication {
-	svc := New(repo, hash, otp, n)
+	svc := New(repo, hash, otp)
 	svc = NewFailedCounterDecorator(svc, fc)
-	return NewLogFailedCountDecorator(svc, l)
+	svc = NewLogFailedCountDecorator(svc, l)
+	return NewNotificationDecorator(svc, n)
 }
 
 // golang 中測試沒有 setUp 方法, 所以寫這個

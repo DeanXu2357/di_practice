@@ -8,12 +8,11 @@ type Authentication interface {
 	Verify(accountID, pwd, otp string) (bool, error)
 }
 
-func New(ar AccountRepo, h HashPassword, op OtpProxy, n Notification) Authentication {
+func New(ar AccountRepo, h HashPassword, op OtpProxy) Authentication {
 	return &authentication{
-		accountRepo:  ar,
-		otpProxy:     op,
-		hash:         h,
-		notification: n,
+		accountRepo: ar,
+		otpProxy:    op,
+		hash:        h,
 	}
 }
 
@@ -42,12 +41,7 @@ func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 
 	if otp == currentOtp && hashedPwd == pwdFromDB {
 		return true, nil
-	} else {
-		// Notify -- slack
-		if err := a.notification.Notify(accountID); err != nil {
-			return false, fmt.Errorf("Notify fail %w", err)
-		}
-
-		return false, nil
 	}
+
+	return false, nil
 }
