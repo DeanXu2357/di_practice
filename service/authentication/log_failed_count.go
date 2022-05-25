@@ -30,3 +30,27 @@ func (a *logFailedCount) LogFailedCount(accountID string) error {
 	a.logger.Printf("failed times: %s", failedCounts)
 	return nil
 }
+
+func NewLogFailedCountDecorator(a Authentication, l LogFailedCount) Authentication {
+	return &logFailedCountDecorator{
+		authentication: a,
+		logFailedCount: l,
+	}
+}
+
+type logFailedCountDecorator struct {
+	authentication Authentication
+	logFailedCount LogFailedCount
+}
+
+func (l *logFailedCountDecorator) Verify(accountID, pwd, otp string) (bool, error) {
+	isValid, err := l.authentication.Verify(accountID, pwd, otp)
+	if err != nil {
+		return false, err
+	}
+	if !isValid {
+		return false, l.logFailedCount.LogFailedCount(accountID)
+	}
+
+	return isValid, nil
+}

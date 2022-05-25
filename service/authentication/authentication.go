@@ -8,22 +8,20 @@ type Authentication interface {
 	Verify(accountID, pwd, otp string) (bool, error)
 }
 
-func New(ar AccountRepo, h HashPassword, op OtpProxy, n Notification, l LogFailedCount) Authentication {
+func New(ar AccountRepo, h HashPassword, op OtpProxy, n Notification) Authentication {
 	return &authentication{
-		accountRepo:    ar,
-		otpProxy:       op,
-		hash:           h,
-		notification:   n,
-		logFailedCount: l,
+		accountRepo:  ar,
+		otpProxy:     op,
+		hash:         h,
+		notification: n,
 	}
 }
 
 type authentication struct {
-	accountRepo    AccountRepo
-	otpProxy       OtpProxy
-	hash           HashPassword
-	notification   Notification
-	logFailedCount LogFailedCount
+	accountRepo  AccountRepo
+	otpProxy     OtpProxy
+	hash         HashPassword
+	notification Notification
 }
 
 func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
@@ -45,11 +43,6 @@ func (a *authentication) Verify(accountID, pwd, otp string) (bool, error) {
 	if otp == currentOtp && hashedPwd == pwdFromDB {
 		return true, nil
 	} else {
-		// get failed count & log failed count
-		if err := a.logFailedCount.LogFailedCount(accountID); err != nil {
-			return false, err
-		}
-
 		// Notify -- slack
 		if err := a.notification.Notify(accountID); err != nil {
 			return false, fmt.Errorf("Notify fail %w", err)
